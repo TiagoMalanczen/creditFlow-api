@@ -1,6 +1,6 @@
-package com.creditflow.credit_api.repository;
+package com.creditflow.credit_api.data.repositorys;
 
-import com.creditflow.credit_api.dtos.model.UsuarioEntity;
+import com.creditflow.credit_api.data.model.UsuarioEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

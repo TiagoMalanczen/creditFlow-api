@@ -1,4 +1,4 @@
-package com.creditflow.credit_api.dtos.enums;
+package com.creditflow.credit_api.data.enums;
 
 public enum Role {
     ROLE_CLIENTE,
