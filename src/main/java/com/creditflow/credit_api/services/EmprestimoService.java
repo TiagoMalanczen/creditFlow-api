@@ -50,7 +50,7 @@ public class EmprestimoService {
                 .setScale(2, RoundingMode.HALF_EVEN);
 
         if(valorParcela.compareTo(margemDisponivel) > 0){
-            throw  new MargemInsuficienteException("Margem insuficiente para emprsetimo");
+            throw  new MargemInsuficienteException("Margem insuficiente para emprestimo");
         }
 
         EmprestimoEntity emprestimo = (EmprestimoEntity.builder()

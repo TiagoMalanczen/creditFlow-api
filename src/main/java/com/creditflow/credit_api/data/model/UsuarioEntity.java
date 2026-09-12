@@ -20,6 +20,9 @@ import java.util.List;
 @Table(name = "usuario")
 public class UsuarioEntity implements UserDetails {
 
+    public UsuarioEntity(String jair, String number, String mail, String number1, BigDecimal bigDecimal, Role role) {
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,6 +45,7 @@ public class UsuarioEntity implements UserDetails {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Role role;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
