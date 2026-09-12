@@ -1,4 +1,4 @@
-package com.creditflow.credit_api.enums;
+package com.creditflow.credit_api.dtos.enums;
 
 public enum StatusEmprestimo {
     EM_ANILISE,

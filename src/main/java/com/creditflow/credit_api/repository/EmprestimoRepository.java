@@ -1,0 +1,14 @@
+package com.creditflow.credit_api.repository;
+
+import com.creditflow.credit_api.dtos.enums.StatusEmprestimo;
+import com.creditflow.credit_api.dtos.model.EmprestimoEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface EmprestimoRepository extends JpaRepository<EmprestimoEntity, Long> {
+
+    List<EmprestimoEntity> findAllByUsuarioId(Long usuarioId);
+    List<EmprestimoEntity> findAllByUsuarioIdAndStatusEmprestimo(Long usuarioId, StatusEmprestimo status);
+
+}

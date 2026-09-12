@@ -1,7 +1,7 @@
-package com.creditflow.credit_api.model;
+package com.creditflow.credit_api.dtos.model;
 
 
-import com.creditflow.credit_api.enums.StatusEmprestimo;
+import com.creditflow.credit_api.dtos.enums.StatusEmprestimo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
