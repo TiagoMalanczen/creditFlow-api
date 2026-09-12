@@ -3,10 +3,7 @@ package com.creditflow.credit_api.data.model;
 
 import com.creditflow.credit_api.data.enums.StatusEmprestimo;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -16,6 +13,7 @@ import java.time.LocalDateTime;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Table(name = "emprestimos")
 public class EmprestimoEntity {
 
