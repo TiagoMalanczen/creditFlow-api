@@ -125,7 +125,6 @@ class UsuarioServiceTest {
         verifyNoInteractions(passwordEncoder);
     }
 
-
     @Test
     @DisplayName("Buscar por id sucesso")
     public void buscarId(){
@@ -202,4 +201,5 @@ class UsuarioServiceTest {
 
         verify(usuarioRepository, never()).save(any());
     }
+
 }
