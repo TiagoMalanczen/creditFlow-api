@@ -72,7 +72,6 @@ class UsuarioServiceTest {
 
        verify(usuarioRepository, times(1)).save(any(UsuarioEntity.class));
     }
-
     @Test
     @DisplayName("Cadastro com email duplicado")
     public void emailDuplicado(){
@@ -92,7 +91,6 @@ class UsuarioServiceTest {
 
         verify(usuarioRepository, never()).save(any());
     }
-
     @Test
     @DisplayName("Cadastro com cpf duplicado")
     public void cpfDuplicado(){
@@ -113,7 +111,6 @@ class UsuarioServiceTest {
 
         verify(usuarioRepository, never()).save(any());
     }
-
     @Test
     @DisplayName("Cadastro com dados nulos")
     public void dadosNulos(){
@@ -153,8 +150,6 @@ class UsuarioServiceTest {
 
         verify(usuarioRepository, times(1)).findById(usuario.getId());
     }
-
-
     @Test
     @DisplayName("Busca por id nao encontrada no banco")
     public void buscaPorIdNaoEncontrada(){
@@ -167,5 +162,44 @@ class UsuarioServiceTest {
         assertEquals("Usuario nao encontrado", exception.getMessage());
 
         verify(usuarioRepository, times(1)).findById(99L);
+    }
+
+    @Test
+    @DisplayName("Sucesso em atualizar renda")
+    public void atulizarRendaSucesso(){
+        UsuarioEntity usuario = UsuarioEntity.builder()
+                .id(1L)
+                .nomeCompleto("Pedro")
+                .cpf("12456789")
+                .senha("asdga")
+                .email("pedro@gmail.com")
+                .role(Role.ROLE_CLIENTE)
+                .rendaMensal(new BigDecimal("1500.0"))
+                .build();
+
+        BigDecimal novaRenda = new BigDecimal("1500.0") ;
+
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(UsuarioEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UsuarioResponse response = usuarioService.atualizarRenda(usuario.getId(), novaRenda);
+
+        assertEquals(novaRenda, response.rendaMensal());
+
+        verify(usuarioRepository, times(1)).findById(usuario.getId());
+        verify(usuarioRepository, times(1)).save(any(UsuarioEntity.class));
+
+    }
+    @Test
+    @DisplayName("Falha em atualizar a renda do usuario")
+    public void falhaAtualizarRenda(){
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+        RecursoNaoEncontradoException exception = assertThrows(RecursoNaoEncontradoException.class, () ->
+                usuarioService.atualizarRenda(99L, new BigDecimal("5000.0")));
+
+        assertEquals("Usuario nao encontrado", exception.getMessage());
+
+        verify(usuarioRepository, never()).save(any());
     }
 }
