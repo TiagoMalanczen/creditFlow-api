@@ -104,7 +104,7 @@ public class EmprestimoService {
                 );
     }
 
-    public List<EmprestimoResponse> listarEmprestimoPorUsuario(Long idUsuario){
+    public List<EmprestimoResponse> listarEmprestimoPorIdUsuario(Long idUsuario){
         if (!usuarioRepository.existsById(idUsuario))
             throw new RecursoNaoEncontradoException("Usuario nao encontrado");
 
