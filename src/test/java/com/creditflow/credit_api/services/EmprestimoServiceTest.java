@@ -6,8 +6,10 @@ import com.creditflow.credit_api.data.model.EmprestimoEntity;
 import com.creditflow.credit_api.data.model.UsuarioEntity;
 import com.creditflow.credit_api.data.repositorys.EmprestimoRepository;
 import com.creditflow.credit_api.data.repositorys.UsuarioRepository;
+import com.creditflow.credit_api.dtos.requests.SimulacaoEmprestimoRequest;
 import com.creditflow.credit_api.dtos.requests.SolicitacaoEmprestimoRequest;
 import com.creditflow.credit_api.dtos.responses.EmprestimoResponse;
+import com.creditflow.credit_api.dtos.responses.SimulacaoEmprestimoResponse;
 import com.creditflow.credit_api.exceptions.MargemInsuficienteException;
 import com.creditflow.credit_api.exceptions.RecursoNaoEncontradoException;
 import com.creditflow.credit_api.exceptions.RegraNegocioException;
@@ -20,6 +22,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.Mockito.*;
@@ -68,8 +73,6 @@ class EmprestimoServiceTest {
 
         verify(emprestimoRepository, times(1)).save(any(EmprestimoEntity.class));
     }
-
-
     @Test
     @DisplayName("Usuario nao encontrado")
     public void usuarioNaoEncontrado(){
@@ -88,8 +91,6 @@ class EmprestimoServiceTest {
 
         verify(emprestimoRepository, never()).save(any());
     }
-
-
     @Test
     @DisplayName("Margem consignavel insuficiente")
     public void margemInsuficiente(){
@@ -116,7 +117,6 @@ class EmprestimoServiceTest {
         verify(emprestimoRepository, never()).save(any());
 
     }
-
     @Test
     @DisplayName("Chamadas nulas")
     public void chamadasNulas(){
@@ -129,5 +129,71 @@ class EmprestimoServiceTest {
         verifyNoInteractions(emprestimoRepository);
     }
 
+
+    @Test
+    @DisplayName("Simulacao de emprestimo realizada com sucesso")
+    public void simularEmprestimoSucesso(){
+        SimulacaoEmprestimoRequest request = new SimulacaoEmprestimoRequest(
+                new BigDecimal("5000.0"),
+                5
+        );
+        SimulacaoEmprestimoResponse response  = emprestimoService.simularEmprestimo(request);
+
+        assertEquals(new BigDecimal("1100.00"), response.valorParcela());
+        assertEquals(new BigDecimal("5500.00"), response.valorTotalComJuros());
+
+        verifyNoInteractions(usuarioRepository);
+        verifyNoInteractions(emprestimoRepository);
+    }
+
+    @Test
+    @DisplayName("Listar emprestimos com sucesso")
+    public void listarEmprestimosSucesso(){
+        UsuarioEntity usuario = new UsuarioEntity(1L,
+                "Jair",
+                "12454953",
+                "jair@email.com",
+                "123456",
+                new BigDecimal("3000.0"),
+                Role.ROLE_CLIENTE);
+        EmprestimoEntity emprestimo = new EmprestimoEntity(
+                1L,
+                new BigDecimal("1000"),
+                new BigDecimal("110"),
+                new BigDecimal("1110"),
+                10,
+                LocalDateTime.now(),
+                StatusEmprestimo.APROVADO,
+                usuario
+        );
+
+        when(usuarioRepository.existsById(1L)).thenReturn(true);
+        when(emprestimoRepository.findAllByUsuarioId(1L)).thenReturn(List.of(emprestimo));
+
+        List<EmprestimoResponse> responses = emprestimoService.listarEmprestimoPorIdUsuario(usuario.getId());
+
+        assertNotNull(responses);
+        assertEquals(1, responses.size());
+        assertEquals(emprestimo.getId(), responses.get(0).id());
+        assertEquals(emprestimo.getValorSolicitado(), responses.get(0).valorSolicitado());
+
+
+        verify(usuarioRepository,times(1)).existsById(1L);
+        verify(emprestimoRepository, times(1)).findAllByUsuarioId(1L);
+    }
+    @Test
+    @DisplayName("Emprestimos nao encotrados")
+    public void listarEmprestimosErro(){
+
+        when(usuarioRepository.existsById(1L)).thenReturn(false);
+
+        RecursoNaoEncontradoException exception = assertThrows(RecursoNaoEncontradoException.class, () ->
+                emprestimoService.listarEmprestimoPorIdUsuario(1L));
+
+        assertEquals("Usuario nao encontrado", exception.getMessage());
+
+        verify(usuarioRepository, times(1)).existsById(1L);
+        verifyNoInteractions(emprestimoRepository);
+    }
 
 }
