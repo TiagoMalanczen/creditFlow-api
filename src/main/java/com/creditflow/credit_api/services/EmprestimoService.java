@@ -5,18 +5,22 @@ import com.creditflow.credit_api.data.model.EmprestimoEntity;
 import com.creditflow.credit_api.data.model.UsuarioEntity;
 import com.creditflow.credit_api.data.repositorys.EmprestimoRepository;
 import com.creditflow.credit_api.data.repositorys.UsuarioRepository;
+import com.creditflow.credit_api.dtos.requests.SimulacaoEmprestimoRequest;
 import com.creditflow.credit_api.dtos.requests.SolicitacaoEmprestimoRequest;
 import com.creditflow.credit_api.dtos.responses.EmprestimoResponse;
+import com.creditflow.credit_api.dtos.responses.SimulacaoEmprestimoResponse;
 import com.creditflow.credit_api.exceptions.MargemInsuficienteException;
 import com.creditflow.credit_api.exceptions.RecursoNaoEncontradoException;
 import com.creditflow.credit_api.exceptions.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +38,7 @@ public class EmprestimoService {
         UsuarioEntity usuario = usuarioRepository.findById(request.usuarioId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuario nao encontrado"));
 
-        BigDecimal juros = BigDecimal.valueOf(1.10)
+        BigDecimal juros = new BigDecimal("1.10")
                 .setScale(2, RoundingMode.HALF_EVEN);
 
         BigDecimal valorComJuros = request.valorSolicitado()
@@ -74,5 +78,51 @@ public class EmprestimoService {
                 emprestimoSalvo.getStatusEmprestimo(),
                 emprestimoSalvo.getDataSolicitacao()
         );
+    }
+
+    public SimulacaoEmprestimoResponse simularEmprestimo(SimulacaoEmprestimoRequest request){
+        if (request == null) {
+            throw new RegraNegocioException("Dados da solicitacao nao podem ser nulos");
+        }
+        BigDecimal juros = new BigDecimal("1.10")
+                .setScale(2, RoundingMode.HALF_EVEN);
+
+        BigDecimal valorComJuros = request.valorSolicitado()
+                .multiply(juros).setScale(2, RoundingMode.HALF_EVEN);
+
+        BigDecimal valorParcela = valorComJuros.divide(
+                BigDecimal.valueOf(request.numeroParcelas()),
+                2,
+                RoundingMode.HALF_EVEN);
+
+
+        return new SimulacaoEmprestimoResponse(
+                request.valorSolicitado(),
+                request.numeroParcelas(),
+                valorParcela,
+                valorComJuros
+                );
+    }
+
+    public List<EmprestimoResponse> listarEmprestimoPorUsuario(Long idUsuario){
+        if (!usuarioRepository.existsById(idUsuario))
+            throw new RecursoNaoEncontradoException("Usuario nao encontrado");
+
+        List<EmprestimoEntity> emprestimos = emprestimoRepository.findAllByUsuarioId(idUsuario);
+
+        List<EmprestimoResponse> emprestimoResponses = emprestimos.stream()
+                .map(emprestimo -> new EmprestimoResponse(
+                        emprestimo.getId(),
+                        emprestimo.getUsuario().getId(),
+                        emprestimo.getValorSolicitado(),
+                        emprestimo.getNumeroParcelas(),
+                        emprestimo.getValorParcela(),
+                        emprestimo.getValorComJuros(),
+                        emprestimo.getStatusEmprestimo(),
+                        emprestimo.getDataSolicitacao()
+                ))
+                .toList();
+
+        return emprestimoResponses;
     }
 }
