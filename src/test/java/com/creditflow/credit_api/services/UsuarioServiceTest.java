@@ -1,10 +1,12 @@
 package com.creditflow.credit_api.services;
 
+import com.creditflow.credit_api.data.enums.Role;
 import com.creditflow.credit_api.data.model.UsuarioEntity;
 import com.creditflow.credit_api.data.repositorys.UsuarioRepository;
 import com.creditflow.credit_api.dtos.requests.CadastroUsuarioRequest;
 import com.creditflow.credit_api.dtos.responses.UsuarioResponse;
 import com.creditflow.credit_api.exceptions.DocumentoDuplicadoException;
+import com.creditflow.credit_api.exceptions.RecursoNaoEncontradoException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +23,7 @@ import static org.mockito.Mockito.*;
 import com.creditflow.credit_api.exceptions.RegraNegocioException;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -71,7 +74,7 @@ class UsuarioServiceTest {
     }
 
     @Test
-    @DisplayName("Email duplicado")
+    @DisplayName("Cadastro com email duplicado")
     public void emailDuplicado(){
         CadastroUsuarioRequest cadastro = new CadastroUsuarioRequest(
                 "Maicon",
@@ -91,7 +94,7 @@ class UsuarioServiceTest {
     }
 
     @Test
-    @DisplayName("Cpf duplicado")
+    @DisplayName("Cadastro com cpf duplicado")
     public void cpfDuplicado(){
         CadastroUsuarioRequest cadastro = new CadastroUsuarioRequest(
                 "Maicon",
@@ -112,7 +115,7 @@ class UsuarioServiceTest {
     }
 
     @Test
-    @DisplayName("Dados nulos")
+    @DisplayName("Cadastro com dados nulos")
     public void dadosNulos(){
         CadastroUsuarioRequest cadastro = null;
 
@@ -126,4 +129,43 @@ class UsuarioServiceTest {
     }
 
 
+    @Test
+    @DisplayName("Buscar por id sucesso")
+    public void buscarId(){
+        UsuarioEntity usuario = UsuarioEntity.builder()
+                .id(1L)
+                .nomeCompleto("Pedro")
+                .cpf("12456789")
+                .senha("asdga")
+                .email("pedro@gmail.com")
+                .role(Role.ROLE_CLIENTE)
+                .rendaMensal(new BigDecimal("1500.0"))
+                .build();
+
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+
+        UsuarioResponse response =  usuarioService.buscarPorId(usuario.getId());
+
+        assertEquals(usuario.getId(), response.id());
+        assertNotNull(response);
+        assertEquals(usuario.getNomeCompleto(), response.nomeCompleto());
+        assertEquals(usuario.getEmail(), response.email());
+
+        verify(usuarioRepository, times(1)).findById(usuario.getId());
+    }
+
+
+    @Test
+    @DisplayName("Busca por id nao encontrada no banco")
+    public void buscaPorIdNaoEncontrada(){
+
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+        RecursoNaoEncontradoException exception = assertThrows(RecursoNaoEncontradoException.class, () ->
+                usuarioService.buscarPorId(99L));
+
+        assertEquals("Usuario nao encontrado", exception.getMessage());
+
+        verify(usuarioRepository, times(1)).findById(99L);
+    }
 }
