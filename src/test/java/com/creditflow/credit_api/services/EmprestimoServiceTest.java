@@ -53,14 +53,14 @@ class EmprestimoServiceTest {
                 "12454953",
                 "jair@email.com",
                 "123456",
-                new BigDecimal("3000.0"),
+                new BigDecimal("3000.00"),
                 Role.ROLE_CLIENTE);
         SolicitacaoEmprestimoRequest solicitacao = new SolicitacaoEmprestimoRequest(
                 1L,
                 new BigDecimal("1000.00"),
                 10
         );
-
+       when(emprestimoRepository.findAllByUsuarioIdAndStatusEmprestimo(anyLong(), any())).thenReturn(List.of());
        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
        when(emprestimoRepository.save(any(EmprestimoEntity.class)))
                .thenAnswer(invocation -> invocation.getArgument(0));
@@ -68,7 +68,7 @@ class EmprestimoServiceTest {
         EmprestimoResponse response = emprestimoService.solicitarEmprestimo(solicitacao);
 
         assertEquals(BigDecimal.valueOf(1100.00).setScale(2), response.valorTotalComJuros());
-        assertEquals(BigDecimal.valueOf(110.0).setScale(2), response.valorParcela());
+        assertEquals(BigDecimal.valueOf(110.00).setScale(2), response.valorParcela());
         assertEquals(StatusEmprestimo.APROVADO, response.status());
 
         verify(emprestimoRepository, times(1)).save(any(EmprestimoEntity.class));

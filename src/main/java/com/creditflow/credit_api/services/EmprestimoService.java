@@ -57,6 +57,15 @@ public class EmprestimoService {
             throw  new MargemInsuficienteException("Margem insuficiente para emprestimo");
         }
 
+        BigDecimal totalComprometido = emprestimoRepository.findAllByUsuarioIdAndStatusEmprestimo(usuario.getId(), StatusEmprestimo.APROVADO)
+                .stream()
+                .map(EmprestimoEntity::getValorParcela)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if((totalComprometido.add(valorParcela)).compareTo(margemDisponivel) > 0){
+            throw  new MargemInsuficienteException("Margem insuficiente para emprestimo");
+        }
+
         EmprestimoEntity emprestimo = (EmprestimoEntity.builder()
                         .valorSolicitado(request.valorSolicitado())
                         .valorParcela(valorParcela)
