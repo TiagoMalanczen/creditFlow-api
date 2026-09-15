@@ -74,22 +74,43 @@ class EmprestimoServiceTest {
         verify(emprestimoRepository, times(1)).save(any(EmprestimoEntity.class));
     }
     @Test
-    @DisplayName("Usuario nao encontrado")
-    public void usuarioNaoEncontrado(){
-        when(usuarioRepository.findById(100L)).thenReturn(Optional.empty());
-
+    @DisplayName("Emprestimo insuficiente por acumulo de parcelas")
+    public void acumuloDeParcelas(){
+        UsuarioEntity usuario = new UsuarioEntity(1L,
+                "Jair",
+                "12454953",
+                "jair@email.com",
+                "123456",
+                new BigDecimal("3000.00"),
+                Role.ROLE_CLIENTE);
         SolicitacaoEmprestimoRequest solicitacao = new SolicitacaoEmprestimoRequest(
-                100L,
-                new BigDecimal("1000.00"),
+                1L,
+                new BigDecimal("3000.00"),
                 10
         );
+        EmprestimoEntity emprestimoAnterior =  EmprestimoEntity.builder()
+                .id(2L)
+                .valorSolicitado(new BigDecimal("6000.00"))
+                .valorParcela(new BigDecimal("660.00"))
+                .valorComJuros(new BigDecimal("6600.0"))
+                .numeroParcelas(10)
+                .dataSolicitacao(LocalDateTime.now())
+                .statusEmprestimo(StatusEmprestimo.APROVADO)
+                .usuario(usuario)
+                .build();
 
-        RecursoNaoEncontradoException exception = assertThrows(RecursoNaoEncontradoException.class, () ->
+        when(emprestimoRepository.findAllByUsuarioIdAndStatusEmprestimo(1L, StatusEmprestimo.APROVADO)).thenReturn(List.of(emprestimoAnterior));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+
+        MargemInsuficienteException exception = assertThrows(MargemInsuficienteException.class, () ->
                 emprestimoService.solicitarEmprestimo(solicitacao));
 
-        assertEquals("Usuario nao encontrado", exception.getMessage());
+        assertEquals("Margem insuficiente para emprestimo devido a acumulo de parcelas", exception.getMessage());
 
-        verify(emprestimoRepository, never()).save(any());
+        verify(usuarioRepository, times(1)).findById(1L);
+        verify(emprestimoRepository,times(1)).findAllByUsuarioIdAndStatusEmprestimo(1L, StatusEmprestimo.APROVADO);
+        verify(emprestimoRepository, never()).save(any(EmprestimoEntity.class));
+
     }
     @Test
     @DisplayName("Margem consignavel insuficiente")
@@ -118,6 +139,24 @@ class EmprestimoServiceTest {
 
     }
     @Test
+    @DisplayName("Usuario nao encontrado")
+    public void usuarioNaoEncontrado(){
+        when(usuarioRepository.findById(100L)).thenReturn(Optional.empty());
+
+        SolicitacaoEmprestimoRequest solicitacao = new SolicitacaoEmprestimoRequest(
+                100L,
+                new BigDecimal("1000.00"),
+                10
+        );
+
+        RecursoNaoEncontradoException exception = assertThrows(RecursoNaoEncontradoException.class, () ->
+                emprestimoService.solicitarEmprestimo(solicitacao));
+
+        assertEquals("Usuario nao encontrado", exception.getMessage());
+
+        verify(emprestimoRepository, never()).save(any());
+    }
+    @Test
     @DisplayName("Chamadas nulas")
     public void chamadasNulas(){
         RegraNegocioException exception = assertThrows(RegraNegocioException.class, () ->
@@ -128,7 +167,6 @@ class EmprestimoServiceTest {
         verifyNoInteractions(usuarioRepository);
         verifyNoInteractions(emprestimoRepository);
     }
-
 
     @Test
     @DisplayName("Simulacao de emprestimo realizada com sucesso")

@@ -63,7 +63,7 @@ public class EmprestimoService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         if((totalComprometido.add(valorParcela)).compareTo(margemDisponivel) > 0){
-            throw  new MargemInsuficienteException("Margem insuficiente para emprestimo");
+            throw  new MargemInsuficienteException("Margem insuficiente para emprestimo devido a acumulo de parcelas");
         }
 
         EmprestimoEntity emprestimo = (EmprestimoEntity.builder()
