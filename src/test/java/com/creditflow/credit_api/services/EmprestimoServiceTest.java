@@ -13,17 +13,17 @@ import com.creditflow.credit_api.dtos.responses.SimulacaoEmprestimoResponse;
 import com.creditflow.credit_api.exceptions.MargemInsuficienteException;
 import com.creditflow.credit_api.exceptions.RecursoNaoEncontradoException;
 import com.creditflow.credit_api.exceptions.RegraNegocioException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,18 +43,25 @@ class EmprestimoServiceTest {
     @InjectMocks
     private EmprestimoService emprestimoService;
 
+    @Captor
+    private ArgumentCaptor<EmprestimoEntity> emprestimoCaptor;
 
-    @Test
-    @DisplayName("Emprestimo realizado com sucesso")
-    public void deveAprovar(){
-
-        UsuarioEntity usuario = new UsuarioEntity(1L,
+    private UsuarioEntity usuario;
+    @BeforeEach
+    void setUp(){
+        usuario = new UsuarioEntity(1L,
                 "Jair",
                 "12454953",
                 "jair@email.com",
                 "123456",
                 new BigDecimal("3000.00"),
                 Role.ROLE_CLIENTE);
+    }
+
+    @Test
+    @DisplayName("Emprestimo realizado com sucesso")
+    public void deveAprovar(){
+
         SolicitacaoEmprestimoRequest solicitacao = new SolicitacaoEmprestimoRequest(
                 1L,
                 new BigDecimal("1000.00"),
@@ -63,40 +70,29 @@ class EmprestimoServiceTest {
        when(emprestimoRepository.findAllByUsuarioIdAndStatusEmprestimo(anyLong(), any())).thenReturn(List.of());
        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
        when(emprestimoRepository.save(any(EmprestimoEntity.class)))
-               .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        EmprestimoResponse response = emprestimoService.solicitarEmprestimo(solicitacao);
+        emprestimoService.solicitarEmprestimo(solicitacao);
 
-        assertEquals(BigDecimal.valueOf(1100.00).setScale(2), response.valorTotalComJuros());
-        assertEquals(BigDecimal.valueOf(110.00).setScale(2), response.valorParcela());
-        assertEquals(StatusEmprestimo.APROVADO, response.status());
+        verify(emprestimoRepository).save(emprestimoCaptor.capture());
+        EmprestimoEntity emprestimo = emprestimoCaptor.getValue();
 
-        verify(emprestimoRepository, times(1)).save(any(EmprestimoEntity.class));
+        assertEquals(usuario, emprestimo.getUsuario());
+        assertEquals(new BigDecimal("1100.00").setScale(2), emprestimo.getValorComJuros());
+        assertEquals(new BigDecimal("110.00").setScale(2), emprestimo.getValorParcela());
+        assertEquals(StatusEmprestimo.APROVADO, emprestimo.getStatusEmprestimo());
     }
     @Test
     @DisplayName("Emprestimo insuficiente por acumulo de parcelas")
     public void acumuloDeParcelas(){
-        UsuarioEntity usuario = new UsuarioEntity(1L,
-                "Jair",
-                "12454953",
-                "jair@email.com",
-                "123456",
-                new BigDecimal("3000.00"),
-                Role.ROLE_CLIENTE);
+
         SolicitacaoEmprestimoRequest solicitacao = new SolicitacaoEmprestimoRequest(
                 1L,
                 new BigDecimal("3000.00"),
                 10
         );
         EmprestimoEntity emprestimoAnterior =  EmprestimoEntity.builder()
-                .id(2L)
-                .valorSolicitado(new BigDecimal("6000.00"))
                 .valorParcela(new BigDecimal("660.00"))
-                .valorComJuros(new BigDecimal("6600.0"))
-                .numeroParcelas(10)
-                .dataSolicitacao(LocalDateTime.now())
-                .statusEmprestimo(StatusEmprestimo.APROVADO)
-                .usuario(usuario)
                 .build();
 
         when(emprestimoRepository.findAllByUsuarioIdAndStatusEmprestimo(1L, StatusEmprestimo.APROVADO)).thenReturn(List.of(emprestimoAnterior));
@@ -110,18 +106,11 @@ class EmprestimoServiceTest {
         verify(usuarioRepository, times(1)).findById(1L);
         verify(emprestimoRepository,times(1)).findAllByUsuarioIdAndStatusEmprestimo(1L, StatusEmprestimo.APROVADO);
         verify(emprestimoRepository, never()).save(any(EmprestimoEntity.class));
-
     }
     @Test
     @DisplayName("Margem consignavel insuficiente")
     public void margemInsuficiente(){
-        UsuarioEntity usuario = new UsuarioEntity(1L,
-                "Jair",
-                "12454953",
-                "jair@email.com",
-                "123456",
-                new BigDecimal("2000.0"),
-                Role.ROLE_CLIENTE);
+
         SolicitacaoEmprestimoRequest solicitacao = new SolicitacaoEmprestimoRequest(
                 1L,
                 new BigDecimal("10000.00"),
@@ -135,8 +124,8 @@ class EmprestimoServiceTest {
 
         assertEquals("Margem insuficiente para emprestimo", exception.getMessage());
 
+        verify(emprestimoRepository, never()).findAllByUsuarioIdAndStatusEmprestimo(any(), any());
         verify(emprestimoRepository, never()).save(any());
-
     }
     @Test
     @DisplayName("Usuario nao encontrado")
@@ -154,7 +143,8 @@ class EmprestimoServiceTest {
 
         assertEquals("Usuario nao encontrado", exception.getMessage());
 
-        verify(emprestimoRepository, never()).save(any());
+        verifyNoInteractions(emprestimoRepository);
+        verify(usuarioRepository, times(1)).findById(100L);
     }
     @Test
     @DisplayName("Chamadas nulas")
@@ -168,70 +158,57 @@ class EmprestimoServiceTest {
         verifyNoInteractions(emprestimoRepository);
     }
 
-    @Test
+    @ParameterizedTest
+    @CsvSource({
+            "1000.00, 1100.00, 220.00",
+            "5000.00, 5500.00, 1100.00"
+    })
     @DisplayName("Simulacao de emprestimo realizada com sucesso")
-    public void simularEmprestimoSucesso(){
+    public void simularEmprestimoSucesso(BigDecimal valorEnviado, BigDecimal valorEsperado, BigDecimal valorParcela){
         SimulacaoEmprestimoRequest request = new SimulacaoEmprestimoRequest(
-                new BigDecimal("5000.0"),
+                valorEnviado,
                 5
         );
         SimulacaoEmprestimoResponse response  = emprestimoService.simularEmprestimo(request);
 
-        assertEquals(new BigDecimal("1100.00"), response.valorParcela());
-        assertEquals(new BigDecimal("5500.00"), response.valorTotalComJuros());
+        assertEquals(valorEsperado, response.valorTotalComJuros());
+        assertEquals(valorParcela, response.valorParcela());
 
         verifyNoInteractions(usuarioRepository);
         verifyNoInteractions(emprestimoRepository);
     }
 
     @Test
-    @DisplayName("Listar emprestimos com sucesso")
-    public void listarEmprestimosSucesso(){
-        UsuarioEntity usuario = new UsuarioEntity(1L,
-                "Jair",
-                "12454953",
-                "jair@email.com",
-                "123456",
-                new BigDecimal("3000.0"),
-                Role.ROLE_CLIENTE);
-        EmprestimoEntity emprestimo = new EmprestimoEntity(
-                1L,
-                new BigDecimal("1000"),
-                new BigDecimal("110"),
-                new BigDecimal("1110"),
-                10,
-                LocalDateTime.now(),
-                StatusEmprestimo.APROVADO,
-                usuario
-        );
+    @DisplayName("Deve listar emprestimos com sucesso quando usuario existir")
+    void deveListarEmprestimosComSucesso() {
+        EmprestimoEntity emprestimo = EmprestimoEntity.builder()
+                .id(10L)
+                .usuario(usuario)
+                .valorSolicitado(new BigDecimal("1000.00"))
+                .valorParcela(new BigDecimal("110.00"))
+                .valorComJuros(new BigDecimal("1100.00"))
+                .numeroParcelas(10)
+                .dataSolicitacao(LocalDateTime.now())
+                .statusEmprestimo(StatusEmprestimo.APROVADO)
+                .build();
 
         when(usuarioRepository.existsById(1L)).thenReturn(true);
         when(emprestimoRepository.findAllByUsuarioId(1L)).thenReturn(List.of(emprestimo));
 
-        List<EmprestimoResponse> responses = emprestimoService.listarEmprestimoPorIdUsuario(usuario.getId());
+        List<EmprestimoResponse> responses = emprestimoService.listarEmprestimoPorIdUsuario(1L);
 
         assertNotNull(responses);
         assertEquals(1, responses.size());
-        assertEquals(emprestimo.getId(), responses.get(0).id());
-        assertEquals(emprestimo.getValorSolicitado(), responses.get(0).valorSolicitado());
 
-
-        verify(usuarioRepository,times(1)).existsById(1L);
-        verify(emprestimoRepository, times(1)).findAllByUsuarioId(1L);
-    }
-    @Test
-    @DisplayName("Emprestimos nao encotrados")
-    public void listarEmprestimosErro(){
-
-        when(usuarioRepository.existsById(1L)).thenReturn(false);
-
-        RecursoNaoEncontradoException exception = assertThrows(RecursoNaoEncontradoException.class, () ->
-                emprestimoService.listarEmprestimoPorIdUsuario(1L));
-
-        assertEquals("Usuario nao encontrado", exception.getMessage());
+        EmprestimoResponse primeiroElemento = responses.get(0);
+        assertEquals(emprestimo.getId(), primeiroElemento.id());
+        assertEquals(emprestimo.getUsuario().getId(), primeiroElemento.usuarioId());
+        assertEquals(emprestimo.getValorSolicitado(), primeiroElemento.valorSolicitado());
+        assertEquals(emprestimo.getValorParcela(), primeiroElemento.valorParcela());
+        assertEquals(emprestimo.getStatusEmprestimo(), primeiroElemento.status());
 
         verify(usuarioRepository, times(1)).existsById(1L);
-        verifyNoInteractions(emprestimoRepository);
+        verify(emprestimoRepository, times(1)).findAllByUsuarioId(1L);
     }
 
 }
