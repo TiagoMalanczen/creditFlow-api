@@ -6,6 +6,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-blue.svg)](https://www.mysql.com/)
 [![JUnit 5](https://img.shields.io/badge/JUnit-5-red.svg)](https://junit.org/junit5/)
 [![Mockito](https://img.shields.io/badge/Mockito-5.x-yellowgreen.svg)](https://site.mockito.org/)
+[![Flyway](https://img.shields.io/badge/Flyway-12.4.0-red.svg)](https://flywaydb.org/)
 
 > 🚧 **Em desenvolvimento.** Cadastro de usuários, simulação e contratação de crédito consignado já funcionam. Autenticação via Spring Security/JWT ainda está em implementação.
 
@@ -22,7 +23,7 @@ Microsserviço financeiro desenvolvido para simulação, validação de regras d
 * **Imutabilidade e DTOs Modernos**: Uso de Java **Records** para blindar contratos de entrada e saída, desacoplando o modelo de persistência relacional do tráfego HTTP e aplicando validações com Jakarta Validation (`@NotNull`, `@Positive`).
 * **Tratamento Global de Exceções**: Centralizado com `@RestControllerAdvice`, interceptando regras violadas (`MargemInsuficienteException`, `RecursoNaoEncontradoException`, `DocumentoDuplicadoException`), erros de validação de campo (`MethodArgumentNotValidException`) e acesso negado (`AccessDeniedException`), com payloads de erro HTTP padronizados.
 * **Cobertura de Testes de Unidade**: Testes automatizados isolados com **JUnit 5** e **Mockito** cobrindo cenários de sucesso, borda e erro na camada de serviço — aprovação, acúmulo de margem, margem insuficiente, usuário inexistente, dados nulos, simulação e listagem.
-
+* **Versionamento de Schema com Flyway**: Controle de evolução do banco de dados relacional por meio de migrações SQL versionadas e imutáveis. O ciclo de vida do schema é acoplado à aplicação com `baseline-on-migrate` para compatibilidade com bases existentes e `ddl-auto: validate` no Hibernate, impedindo alterações destrutivas automáticas em tempo de execução.
 ---
 
 ## Modelo de Dados
@@ -42,6 +43,7 @@ O banco de dados relacional (MySQL) é estruturado nas seguintes entidades centr
 * Spring Security (BCrypt já em uso; autenticação via JWT em implementação)
 * Spring Validation
 * Spring Web
+* **Flyway 12.4.0** (Database Migrations)
 
 * **MySQL 8.0** / Hibernate
 * **JUnit 5 & Mockito**
@@ -55,7 +57,7 @@ O banco de dados relacional (MySQL) é estruturado nas seguintes entidades centr
 ```text
 src/
 ├── main/java/com/creditflow/credit_api/
-│   ├── config/             # Configurações de beans e segurança base
+│   ├── config/             # Configurações de beans, segurança e FlywayConfig
 │   ├── controllers/        # Endpoints REST (Simulações, Contratação e Usuários)
 │   ├── data/               # Entidades JPA (@Entity), Enums e Repositórios Spring Data
 │   ├── dtos/               # Records de transporte para Requests e Responses
@@ -134,7 +136,6 @@ O que falta: filtro de autenticação JWT, regras de autorização por rota/role
 ## Roadmap e Próximos Passos
 
 * [ ] Autenticação Stateless via **Spring Security** e tokens **JWT**.
-* [ ] Controle e versionamento de schema com **Flyway Migrations**.
 * [ ] Containerização de ambiente com **Docker & Docker Compose** (API + MySQL).
 * [ ] Documentação interativa via **OpenAPI / Swagger UI**.
 * [ ] Tabela de taxas de juros por prazo/perfil, substituindo a taxa fixa atual.
