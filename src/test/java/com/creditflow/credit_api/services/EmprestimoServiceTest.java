@@ -187,7 +187,7 @@ class EmprestimoServiceTest {
                 .valorSolicitado(new BigDecimal("1000.00"))
                 .valorParcela(new BigDecimal("110.00"))
                 .valorComJuros(new BigDecimal("1100.00"))
-                .numeroParcelas(10)
+                .numeroTotalParcelas(10)
                 .dataSolicitacao(LocalDateTime.now())
                 .statusEmprestimo(StatusEmprestimo.APROVADO)
                 .build();

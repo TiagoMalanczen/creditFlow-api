@@ -31,7 +31,7 @@ public class EmprestimoEntity {
     private BigDecimal valorComJuros;
 
     @Column(nullable = false)
-    private Integer numeroParcelas;
+    private Integer numeroTotalParcelas;
 
     @Column(nullable = false)
     private LocalDateTime dataSolicitacao;

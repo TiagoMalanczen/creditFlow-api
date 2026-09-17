@@ -13,7 +13,6 @@ import com.creditflow.credit_api.exceptions.MargemInsuficienteException;
 import com.creditflow.credit_api.exceptions.RecursoNaoEncontradoException;
 import com.creditflow.credit_api.exceptions.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,7 +69,7 @@ public class EmprestimoService {
                         .valorSolicitado(request.valorSolicitado())
                         .valorParcela(valorParcela)
                         .valorComJuros(valorComJuros)
-                        .numeroParcelas(request.numeroParcelas())
+                        .numeroTotalParcelas(request.numeroParcelas())
                         .dataSolicitacao(LocalDateTime.now())
                         .statusEmprestimo(StatusEmprestimo.APROVADO)
                         .usuario(usuario)
@@ -124,7 +123,7 @@ public class EmprestimoService {
                         emprestimo.getId(),
                         emprestimo.getUsuario().getId(),
                         emprestimo.getValorSolicitado(),
-                        emprestimo.getNumeroParcelas(),
+                        emprestimo.getNumeroTotalParcelas(),
                         emprestimo.getValorParcela(),
                         emprestimo.getValorComJuros(),
                         emprestimo.getStatusEmprestimo(),
